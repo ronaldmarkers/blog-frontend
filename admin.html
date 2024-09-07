@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog Admin</title>
+    <title>Admin Panel - My Blog</title>
 </head>
 <body>
     <h1>Admin Panel</h1>
 
-    <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
+    <!-- Netlify Identity UI -->
+    <div>
+        <button id="loginButton">Login</button>
+        <button id="signupButton">Sign Up</button>
+        <button id="logoutButton" style="display: none;">Logout</button>
+    </div>
 
+    <!-- Blog Update Form (hidden initially) -->
     <div id="updateForm" style="display: none;">
         <input type="file" id="image" accept="image/*">
         <textarea id="text" placeholder="Enter new blog text"></textarea>
@@ -22,53 +24,39 @@
 
     <p id="message"></p>
 
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
-        let token = '';
+        // Initialize Netlify Identity
+        netlifyIdentity.init();
 
-        document.getElementById('loginForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            const response = await fetch('https://blog-backend-demo.netlify.app/.netlify/functions/server/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                token = result.token;
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('updateForm').style.display = 'block';
-            } else {
-                document.getElementById('message').innerText = 'Login failed';
-            }
+        // Event listeners for login, signup, and logout
+        document.getElementById('loginButton').addEventListener('click', () => {
+            netlifyIdentity.open('login');
         });
 
-        document.getElementById('updateButton').addEventListener('click', async function() {
-            const image = document.getElementById('image').files[0];
-            const text = document.getElementById('text').value;
+        document.getElementById('signupButton').addEventListener('click', () => {
+            netlifyIdentity.open('signup');
+        });
 
-            const formData = new FormData();
-            if (image) formData.append('image', image);
-            if (text) formData.append('text', text);
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            netlifyIdentity.logout();
+        });
 
-            const response = await fetch('https://blog-backend-demo.netlify.app/.netlify/functions/server/update-blog', {
-                method: 'POST',
-                headers: { 'Authorization': token },
-                body: formData
-            });
+        // Listen to login/logout events
+        netlifyIdentity.on('login', user => {
+            document.getElementById('message').innerText = `Hello, ${user.user_metadata.full_name}`;
+            document.getElementById('loginButton').style.display = 'none';
+            document.getElementById('signupButton').style.display = 'none';
+            document.getElementById('logoutButton').style.display = 'inline-block';
+            document.getElementById('updateForm').style.display = 'block';
+        });
 
-            const result = await response.json();
-
-            if (response.ok) {
-                document.getElementById('message').innerText = 'Blog updated successfully';
-            } else {
-                document.getElementById('message').innerText = 'Update failed';
-            }
+        netlifyIdentity.on('logout', () => {
+            document.getElementById('message').innerText = '';
+            document.getElementById('loginButton').style.display = 'inline-block';
+            document.getElementById('signupButton').style.display = 'inline-block';
+            document.getElementById('logoutButton').style.display = 'none';
+            document.getElementById('updateForm').style.display = 'none';
         });
     </script>
 </body>
